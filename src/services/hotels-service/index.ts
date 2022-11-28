@@ -23,7 +23,24 @@ async function getAvaliablesHotels(userId: number) {
   return await hotelsRepository.findHotels();
 }
 
-async function getHotelRooms(hotelId: number) {
+async function getHotelRooms(hotelId: number, userId: number) {
+  const enrollmentId = await enrollmentRepository.findWithAddressByUserId(userId);
+
+  if(!enrollmentId) {
+    throw unauthorizedError();
+  }
+  const ticket = await ticketRepository.findTicketByEnrollmentId(enrollmentId.id);
+  
+  const hotelIdNumber = Number(hotelId);
+
+  if (!ticket || !ticket.TicketType.includesHotel || ticket.TicketType.isRemote) {
+    throw notFoundError();
+  } else if (ticket.status === "RESERVED") {
+    throw invalidDataError(["Ticket payment not found"]);
+  } else if (!hotelIdNumber) {
+    throw notFoundError();
+  }
+
   const rooms = await hotelsRepository.findHotelsRooms(hotelId);
 
   if(rooms.length === 0) {
